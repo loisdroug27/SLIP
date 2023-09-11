@@ -137,41 +137,39 @@ public struct SLIP {
          Decodes  the data from the SLIP-encoded packet.
          */
         public var decoded: Data {
-            get throws {
-                if !ignoresProtocolError {
-                    if !isValid {
-                        throw SLIPError.protocolError
-                    }
-                }
-                
-                var output: Data = .init([])
-                
-                let stripped = stripped()
-                var index = 0
-                while index < stripped.count {
-                    let byte = stripped[index]
-                    guard index < stripped.count - 1 else {
-                        output.append(byte)
-                        index += 1
-                        break
-                    }
-                    
-                    let nextByte = stripped[index + 1]
-                    if byte == SLIP.Byte.ESC && nextByte == SLIP.Byte.ESC_END {
-                        output.append(SLIP.Byte.END)
-                        index += 2
-                    } else if byte == SLIP.Byte.ESC && nextByte == SLIP.Byte.ESC_ESC {
-                        output.append(SLIP.Byte.ESC)
-                        index += 2
-                    } else {
-                        output.append(byte)
-                        index += 1
-                    }
-                }
-                
-                return output
+    get throws {
+        if !ignoresProtocolError {
+            if !isValid {
+                throw SLIPError.protocolError
             }
         }
+        
+        var output: Data = .init([])
+        
+        let inputData = data.dropFirst().dropLast() // Drop the start and end SLIP.Byte.END bytes
+        var index = inputData.startIndex
+        while index < inputData.endIndex {
+            let byte = inputData[index]
+            if byte == SLIP.Byte.ESC, index != inputData.index(before: inputData.endIndex) {
+                let nextByte = inputData[inputData.index(after: index)]
+                if nextByte == SLIP.Byte.ESC_END {
+                    output.append(SLIP.Byte.END)
+                    index = inputData.index(index, offsetBy: 2)
+                    continue
+                } else if nextByte == SLIP.Byte.ESC_ESC {
+                    output.append(SLIP.Byte.ESC)
+                    index = inputData.index(index, offsetBy: 2)
+                    continue
+                }
+            }
+            output.append(byte)
+            index = inputData.index(after: index)
+        }
+        
+        return output
+    }
+}
+
     }
     
 }
