@@ -146,7 +146,12 @@ public struct SLIP {
         
         var output: Data = .init([])
         
-        let inputData = data.dropFirst().dropLast() // Drop the start and end SLIP.Byte.END bytes
+        var inputData: Data
+         if data.first == SLIP.Byte.END && data.last == SLIP.Byte.END {
+            inputData = data.dropFirst().dropLast() // If framed correctly, drop the start and end SLIP.Byte.END bytes
+          } else {
+            inputData = data // If not framed correctly, retain the entire data
+          }
         var index = inputData.startIndex
         while index < inputData.endIndex {
             let byte = inputData[index]
@@ -167,9 +172,7 @@ public struct SLIP {
         }
         
         return output
+           }
+        }
     }
-}
-
-    }
-    
 }
